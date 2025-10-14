@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 export default function HomeScreen() {
   const frequentQuestions = [
@@ -23,21 +24,32 @@ export default function HomeScreen() {
       icon: "leaf",
       color: "#4CAF50",
       title: "네트워크의 7계층에는 어떤 것이 있...",
+      fullQuestion:
+        "네트워크의 7계층에는 어떤 것이 있으며, 각 계층의 역할은 무엇인가요?",
+      category: "네트워크",
     },
     {
       icon: "nuclear",
       color: "#2196F3",
       title: "데드락의 개념과 데드락이 일어날...",
+      fullQuestion:
+        "데드락의 개념과 데드락이 일어날 수 있는 조건들을 설명해주세요.",
+      category: "운영체제",
     },
     {
       icon: "leaf",
       color: "#4CAF50",
       title: "클러스터링 인덱스가 무엇이고, 장...",
+      fullQuestion: "클러스터링 인덱스가 무엇이고, 장단점은 무엇인가요?",
+      category: "데이터베이스",
     },
     {
       icon: "settings",
       color: "#9E9E9E",
       title: "해쉬 테이블에서 해쉬 충돌이 일어...",
+      fullQuestion:
+        "해쉬 테이블에서 해쉬 충돌이 일어날 때 해결 방법은 무엇인가요?",
+      category: "자료구조",
     },
   ];
 
@@ -80,7 +92,19 @@ export default function HomeScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>틀렸던 문제 다시 풀어보기</Text>
           {incorrectProblems.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.listItem}>
+            <TouchableOpacity
+              key={index}
+              style={styles.listItem}
+              onPress={() => {
+                router.push({
+                  pathname: "/chat",
+                  params: {
+                    question: item.fullQuestion,
+                    category: item.category,
+                  },
+                });
+              }}
+            >
               <Ionicons name={item.icon as any} size={20} color={item.color} />
               <Text style={styles.listItemText}>{item.title}</Text>
               <Ionicons name="chevron-forward" size={16} color="#9E9E9E" />

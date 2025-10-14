@@ -7,6 +7,8 @@ import {
   TextInput,
   TouchableOpacity,
   SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -70,88 +72,98 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>
-            {typeof category === "string" ? category : "질문"} 문제 상세
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.answerButton}
-          onPress={() => {
-            router.push({
-              pathname: "/modal",
-              params: {
-                question: typeof question === "string" ? question : "",
-                category: typeof category === "string" ? category : "Spring",
-              },
-            });
-          }}
-        >
-          <Text style={styles.answerButtonText}>모범답안</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Chat Messages */}
-      <ScrollView
-        style={styles.messagesContainer}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        {messages.map((message) => (
-          <View
-            key={message.id}
-            style={[
-              styles.messageContainer,
-              message.isUser
-                ? styles.userMessageContainer
-                : styles.aiMessageContainer,
-            ]}
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
           >
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>
+              {typeof category === "string" ? category : "질문"} 문제 상세
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.answerButton}
+            onPress={() => {
+              router.push({
+                pathname: "/modal",
+                params: {
+                  question: typeof question === "string" ? question : "",
+                  category: typeof category === "string" ? category : "Spring",
+                },
+              });
+            }}
+          >
+            <Text style={styles.answerButtonText}>모범답안</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Chat Messages */}
+        <ScrollView
+          style={styles.messagesContainer}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.messagesContent}
+        >
+          {messages.map((message) => (
             <View
+              key={message.id}
               style={[
-                styles.messageBubble,
+                styles.messageContainer,
                 message.isUser
-                  ? styles.userMessageBubble
-                  : styles.aiMessageBubble,
+                  ? styles.userMessageContainer
+                  : styles.aiMessageContainer,
               ]}
             >
-              <Text
+              <View
                 style={[
-                  styles.messageText,
+                  styles.messageBubble,
                   message.isUser
-                    ? styles.userMessageText
-                    : styles.aiMessageText,
+                    ? styles.userMessageBubble
+                    : styles.aiMessageBubble,
                 ]}
               >
-                {message.text}
-              </Text>
+                <Text
+                  style={[
+                    styles.messageText,
+                    message.isUser
+                      ? styles.userMessageText
+                      : styles.aiMessageText,
+                  ]}
+                >
+                  {message.text}
+                </Text>
+              </View>
+              <Text style={styles.timestamp}>{message.timestamp}</Text>
             </View>
-            <Text style={styles.timestamp}>{message.timestamp}</Text>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
 
-      {/* Input Area */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.textInput}
-          placeholder="답변을 입력해주세요"
-          value={inputText}
-          onChangeText={setInputText}
-          multiline
-          maxLength={500}
-        />
-        <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>
-          <Ionicons name="arrow-up" size={20} color="#FFF" />
-        </TouchableOpacity>
-      </View>
+        {/* Input Area */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="답변을 입력해주세요"
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity
+            onPress={handleSendMessage}
+            style={styles.sendButton}
+          >
+            <Ionicons name="arrow-up" size={20} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -160,6 +172,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F5F5F5",
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   header: {
     flexDirection: "row",
@@ -198,6 +213,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
+  },
+  messagesContent: {
+    paddingBottom: 16,
   },
   messageContainer: {
     marginBottom: 16,
