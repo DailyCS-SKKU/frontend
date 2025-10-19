@@ -56,5 +56,27 @@ export const loginWithGoogle = async (code: string): Promise<LoginResponse> => {
  * @returns 사용자 정보
  */
 export const getUserInfo = async (): Promise<UserInfo> => {
-  return apiClient.get<UserInfo>("/user-info/me");
+  try {
+    const response = await apiClient.get<UserInfo>("/user-info/me");
+    console.log("사용자 정보 API 응답:", response);
+    console.log("사용자 정보 응답 타입:", typeof response);
+
+    // 응답이 문자열인 경우 JSON 파싱 시도
+    if (typeof response === "string") {
+      try {
+        const parsedResponse = JSON.parse(response);
+        console.log("파싱된 사용자 정보:", parsedResponse);
+        return parsedResponse;
+      } catch (parseError) {
+        console.error("사용자 정보 JSON 파싱 실패:", parseError);
+        throw parseError;
+      }
+    }
+
+    // 객체인 경우 직접 반환
+    return response;
+  } catch (error) {
+    console.error("사용자 정보 조회 실패:", error);
+    throw error;
+  }
 };

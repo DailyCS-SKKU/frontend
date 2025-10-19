@@ -1,84 +1,94 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ScrollView,
   StyleSheet,
   View,
   TouchableOpacity,
   Text,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { questionApi, SolvedQuestion } from "../../lib/question-api";
+import { getInterestedSkills, Skill } from "../../lib/skill-api";
 
 export default function DailyQuestionScreen() {
-  const [selectedCategory, setSelectedCategory] = useState("알고리즘");
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
+  const [questions, setQuestions] = useState<SolvedQuestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const categories = [
-    "Spring",
-    "JAVA",
-    "네트워크",
-    "알고리즘",
-    "데이터베이스",
-    "React",
-  ];
+  // 관심 스킬 목록 가져오기
+  const fetchInterestedSkills = async () => {
+    try {
+      const data = await getInterestedSkills();
+      setSkills(data);
+      // 첫 번째 스킬을 기본 선택으로 설정
+      if (data.length > 0) {
+        setSelectedSkill(data[0]);
+        fetchQuestions(data[0].id);
+      }
+    } catch (err) {
+      console.error("관심 스킬 가져오기 실패:", err);
+      setError("관심 스킬을 가져오는데 실패했습니다.");
+    }
+  };
 
-  const questions = [
-    {
-      day: 1,
-      question: "데드락의 개념과 데드락이 일어날 조건에 대해서 설명하시요",
-      completed: true,
-      category: "OS",
-    },
-    {
-      day: 2,
-      question:
-        "데이터베이스에서 클러스터링 인덱스가 무엇인지 설명하고, 어떤 장단점이 있는지 설...",
-      completed: true,
-      category: "데이터베이스",
-    },
-    {
-      day: 3,
-      question: "네트워크의 7계층에는 어떤 것이 있나요?",
-      completed: true,
-      category: "네트워크",
-    },
-    {
-      day: 4,
-      question: "TCP, UDP의 특징과 각각의 장단점이 무엇인지 설명하세요",
-      completed: true,
-      category: "네트워크",
-    },
-    {
-      day: 5,
-      question: "데드락의 개념과 데드락이 일어날 조건에 대해서 설명하시요",
-      completed: false,
-      category: "OS",
-    },
-    {
-      day: 6,
-      question: "데드락의 개념과 데드락이 일어날 조건에 대해서 설명하시요",
-      completed: true,
-      category: "OS",
-    },
-    {
-      day: 7,
-      question: "데드락의 개념과 데드락이 일어날 조건에 대해서 설명하시요",
-      completed: false,
-      category: "OS",
-    },
-    {
-      day: 8,
-      question: "데드락의 개념과 데드락이 일어날 조건에 대해서 설명하시요",
-      completed: false,
-      category: "OS",
-    },
-    {
-      day: 9,
-      question: "데드락의 개념과 데드락이 일어날 조건에 대해서 설명하시요",
-      completed: true,
-      category: "OS",
-    },
-  ];
+  // 문제 목록 가져오기
+  const fetchQuestions = async (skillId: number) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await questionApi.getSolvedQuestions(skillId);
+      console.log("API 응답 데이터:", data);
+      console.log("데이터 타입:", typeof data);
+      console.log("배열 여부:", Array.isArray(data));
+
+      // 데이터가 배열인지 확인하고, 아니면 빈 배열로 설정
+      if (Array.isArray(data)) {
+        setQuestions(data);
+      } else {
+        console.warn("API 응답이 배열이 아닙니다. 빈 배열로 설정합니다.");
+        setQuestions([]);
+      }
+    } catch (err) {
+      console.error("문제 목록 가져오기 실패:", err);
+      setError("문제 목록을 가져오는데 실패했습니다.");
+      setQuestions([]); // 에러 시에도 빈 배열로 설정
+      Alert.alert("오류", "문제 목록을 가져오는데 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 스킬 선택 핸들러
+  const handleSkillSelect = (skill: Skill) => {
+    setSelectedSkill(skill);
+    fetchQuestions(skill.id);
+  };
+
+  // 컴포넌트 마운트 시 관심 스킬 목록 가져오기
+  useEffect(() => {
+    fetchInterestedSkills();
+  }, []);
+
+  // 관심 스킬이 없으면 간단한 메시지만 표시
+  if (skills.length === 0 && !loading && !error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>1일 1질문</Text>
+        </View>
+        <View style={styles.noSkillsContainer}>
+          <Text style={styles.noSkillsText}>관심 스킬이 없습니다.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -87,7 +97,7 @@ export default function DailyQuestionScreen() {
         <Text style={styles.headerTitle}>1일 1질문</Text>
       </View>
 
-      {/* Category Tabs */}
+      {/* Skill Tabs */}
       <View style={styles.categorySection}>
         <ScrollView
           horizontal
@@ -95,22 +105,22 @@ export default function DailyQuestionScreen() {
           style={styles.categoryContainer}
           contentContainerStyle={styles.categoryContent}
         >
-          {categories.map((category) => (
+          {skills.map((skill) => (
             <TouchableOpacity
-              key={category}
+              key={skill.id}
               style={[
                 styles.categoryTab,
-                selectedCategory === category && styles.selectedCategoryTab,
+                selectedSkill?.id === skill.id && styles.selectedCategoryTab,
               ]}
-              onPress={() => setSelectedCategory(category)}
+              onPress={() => handleSkillSelect(skill)}
             >
               <Text
                 style={[
                   styles.categoryText,
-                  selectedCategory === category && styles.selectedCategoryText,
+                  selectedSkill?.id === skill.id && styles.selectedCategoryText,
                 ]}
               >
-                {category}
+                {skill.name}
               </Text>
             </TouchableOpacity>
           ))}
@@ -122,40 +132,74 @@ export default function DailyQuestionScreen() {
         style={styles.questionsContainer}
         showsVerticalScrollIndicator={false}
       >
-        {questions.map((item) => (
-          <TouchableOpacity
-            key={item.day}
-            style={styles.questionItem}
-            onPress={() => {
-              router.push({
-                pathname: "/chat",
-                params: {
-                  question: item.question,
-                  category: item.category,
-                },
-              });
-            }}
-          >
-            <View style={styles.questionContent}>
-              <View style={styles.questionHeader}>
-                <Text style={styles.dayText}>{item.day}일차</Text>
-                <View style={styles.questionCategoryTag}>
-                  <Text style={styles.questionCategoryText}>
-                    {item.category}
-                  </Text>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#9C27B0" />
+            <Text style={styles.loadingText}>문제 목록을 불러오는 중...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={48} color="#FF5722" />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => {
+                if (selectedSkill) {
+                  fetchQuestions(selectedSkill.id);
+                } else {
+                  fetchInterestedSkills();
+                }
+              }}
+            >
+              <Text style={styles.retryButtonText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
+        ) : !Array.isArray(questions) || questions.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="document-text-outline" size={48} color="#9E9E9E" />
+            <Text style={styles.emptyText}>
+              {selectedSkill?.name || "선택된 스킬"}에 풀었던 문제가 없습니다.
+            </Text>
+          </View>
+        ) : (
+          questions.map((item) => (
+            <TouchableOpacity
+              key={item.questionId}
+              style={styles.questionItem}
+              onPress={() => {
+                router.push({
+                  pathname: "/chat",
+                  params: {
+                    questionId: item.questionId.toString(),
+                    question: item.question,
+                    category: item.skillName,
+                  },
+                });
+              }}
+            >
+              <View style={styles.questionContent}>
+                <View style={styles.questionHeader}>
+                  <Text style={styles.dayText}>{item.day}일차</Text>
+                  <View style={styles.questionCategoryTag}>
+                    <Text style={styles.questionCategoryText}>
+                      {item.skillName}
+                    </Text>
+                  </View>
                 </View>
+                <Text style={styles.questionText}>{item.question}</Text>
               </View>
-              <Text style={styles.questionText}>{item.question}</Text>
-            </View>
-            <View style={styles.statusIcon}>
-              {item.completed ? (
-                <Ionicons name="checkmark" size={20} color="#000" />
-              ) : (
-                <Ionicons name="close" size={20} color="#000" />
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
+              <View style={styles.statusIcon}>
+                {item.status === "CORRECT" ? (
+                  <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                ) : item.status === "IN_PROGRESS" ? (
+                  <Ionicons name="time-outline" size={24} color="#FF9800" />
+                ) : (
+                  <Ionicons name="close-circle" size={24} color="#F44336" />
+                )}
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -260,6 +304,71 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   statusIcon: {
-    marginLeft: 12,
+    marginVertical: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    marginTop: 16,
+    marginBottom: 24,
+    fontSize: 16,
+    color: "#FF5722",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  retryButton: {
+    backgroundColor: "#9C27B0",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#9E9E9E",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  noSkillsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  noSkillsText: {
+    fontSize: 16,
+    color: "#9E9E9E",
+    textAlign: "center",
+    lineHeight: 24,
   },
 });
