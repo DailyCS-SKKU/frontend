@@ -5,18 +5,50 @@ import {
   View,
   TouchableOpacity,
   Text,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/lib/auth-context";
 
 export default function ProfileScreen() {
+  console.log("ProfileScreen 컴포넌트 렌더링");
+  const { logout } = useAuth();
+  console.log("useAuth에서 받은 logout 함수:", typeof logout);
   const interestedJobs = ["백엔드", "인프라", "서버"];
   const interestedSkills = ["Spring", "알고리즘"];
 
+  const handleLogout = () => {
+    console.log("handleLogout 함수 호출됨");
+
+    // 임시로 바로 로그아웃 실행
+    console.log("바로 로그아웃 실행");
+    logout();
+
+    // Alert는 나중에 다시 활성화
+    /*
+    Alert.alert("로그아웃", "정말 로그아웃하시겠습니까?", [
+      {
+        text: "취소",
+        style: "cancel",
+        onPress: () => console.log("로그아웃 취소됨"),
+      },
+      {
+        text: "로그아웃",
+        style: "destructive",
+        onPress: async () => {
+          console.log("프로필 페이지에서 로그아웃 버튼 클릭");
+          await logout();
+        },
+      },
+    ]);
+    */
+  };
+
   const settingsItems = [
-    { title: "계정 정보 변경", icon: "person-outline" },
-    { title: "테마 관리", icon: "color-palette-outline" },
-    { title: "로그아웃", icon: "log-out-outline" },
+    { title: "계정 정보 변경", icon: "person-outline", onPress: () => {} },
+    { title: "테마 관리", icon: "color-palette-outline", onPress: () => {} },
+    { title: "로그아웃", icon: "log-out-outline", onPress: handleLogout },
   ];
 
   return (
@@ -69,7 +101,14 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>설정</Text>
           {settingsItems.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.settingsItem}>
+            <TouchableOpacity
+              key={index}
+              style={styles.settingsItem}
+              onPress={() => {
+                console.log(`설정 아이템 클릭: ${item.title}`);
+                item.onPress();
+              }}
+            >
               <Text style={styles.settingsItemText}>{item.title}</Text>
               <Ionicons name="chevron-forward" size={16} color="#9E9E9E" />
             </TouchableOpacity>

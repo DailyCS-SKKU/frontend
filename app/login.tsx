@@ -12,6 +12,7 @@ import { Colors } from "@/constants/theme";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
 import { loginWithGoogle } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -23,6 +24,8 @@ const discovery = {
 };
 
 export default function LoginScreen() {
+  const { login } = useAuth();
+
   // Expo Go용 redirectUri (auth.expo.dev 프록시)
   const redirectUri = React.useMemo(
     () => AuthSession.makeRedirectUri({ useProxy: true }),
@@ -76,6 +79,9 @@ export default function LoginScreen() {
       console.log("🚀 API 호출 시작 - code:", code);
       const response = await loginWithGoogle(code);
       console.log("✅ API 응답 성공:", response);
+
+      // 로그인 성공 시 홈으로 리다이렉트
+      login();
     } catch (error) {
       console.error("❌ API 호출 실패:", error);
     }

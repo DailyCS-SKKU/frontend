@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import Constants from "expo-constants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storage } from "./storage";
 
 // 환경변수에서 API URL 가져오기
 const API_BASE_URL =
@@ -15,14 +15,20 @@ const api: AxiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  // 응답 헤더 전체를 받기 위한 설정
+  transformResponse: [
+    function (data) {
+      return data;
+    },
+  ],
 });
 
 // 요청 인터셉터 (토큰 자동 추가)
 api.interceptors.request.use(
   async (config) => {
-    // AsyncStorage에서 토큰 가져오기
+    // 스토리지에서 토큰 가져오기
     try {
-      const token = await AsyncStorage.getItem("accessToken");
+      const token = await storage.getItem("accessToken");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -36,9 +42,30 @@ api.interceptors.request.use(
   }
 );
 
-// 응답 인터셉터 (에러 처리)
+// 응답 인터셉터 (토큰 처리 및 에러 처리)
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    // 로그인 응답에서 토큰 처리
+    if (response.config.url?.includes("/auth/login/google")) {
+      const tokenHeaders = [
+        "access-token",
+        "authorization",
+        "Access-Token",
+        "Authorization",
+      ];
+
+      for (const headerKey of tokenHeaders) {
+        const token = response.headers[headerKey];
+        if (token) {
+          const cleanToken = token.startsWith("Bearer ")
+            ? token.substring(7)
+            : token;
+          storage.setItem("accessToken", cleanToken);
+          break;
+        }
+      }
+    }
+
     return response;
   },
   (error) => {
@@ -64,10 +91,12 @@ export const apiClient = {
     data?: any,
     config?: AxiosRequestConfig
   ): Promise<T & { headers?: any }> => {
-    return api.post(endpoint, data, config).then((response) => ({
-      ...response.data,
-      headers: response.headers,
-    }));
+    return api.post(endpoint, data, config).then((response) => {
+      return {
+        ...response.data,
+        headers: response.headers,
+      };
+    });
   },
 
   // PUT 요청

@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storage } from "./storage";
 
 // Google 로그인 요청 타입
 export interface GoogleLoginRequest {
@@ -47,14 +47,7 @@ export const loginWithGoogle = async (code: string): Promise<LoginResponse> => {
     requestData
   );
 
-  // access token을 localStorage에 저장
-  const token =
-    response.headers?.["access-token"] || response.headers?.["authorization"];
-  if (token) {
-    await AsyncStorage.setItem("accessToken", token);
-    console.log("✅ Access token 저장 완료");
-  }
-
+  // 토큰 처리는 api.ts에서 자동으로 처리됩니다
   return response;
 };
 
