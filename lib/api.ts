@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // 환경변수에서 API URL 가져오기
 const API_BASE_URL =
@@ -16,14 +17,18 @@ const api: AxiosInstance = axios.create({
   },
 });
 
-// 요청 인터셉터 (필요시 토큰 추가 등)
+// 요청 인터셉터 (토큰 자동 추가)
 api.interceptors.request.use(
-  (config) => {
-    // 여기에 인증 토큰 추가 로직을 넣을 수 있습니다
-    // const token = getToken();
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+  async (config) => {
+    // AsyncStorage에서 토큰 가져오기
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.log("토큰 가져오기 실패:", error);
+    }
     return config;
   },
   (error) => {

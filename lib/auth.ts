@@ -21,6 +21,20 @@ export interface LoginResponse {
   headers?: any;
 }
 
+// 사용자 정보 타입
+export interface UserInfo {
+  id: number;
+  provider: string;
+  email: string;
+  name: string;
+  nickname: string;
+  imageUrl: string;
+  status: string;
+  lastLoginAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /**
  * Google OAuth 로그인
  * @param code Google OAuth 인증 코드
@@ -42,4 +56,12 @@ export const loginWithGoogle = async (code: string): Promise<LoginResponse> => {
   }
 
   return response;
+};
+
+/**
+ * 현재 사용자 정보 조회
+ * @returns 사용자 정보
+ */
+export const getUserInfo = async (): Promise<UserInfo> => {
+  return apiClient.get<UserInfo>("/user-info/me");
 };
