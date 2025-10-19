@@ -11,7 +11,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { questionApi, SolvedQuestion } from "../../lib/question-api";
+import {
+  questionApi,
+  SolvedQuestion,
+  NextQuestion,
+} from "../../lib/question-api";
 import { getInterestedSkills, Skill } from "../../lib/skill-api";
 
 export default function DailyQuestionScreen() {
@@ -37,24 +41,74 @@ export default function DailyQuestionScreen() {
     }
   };
 
+  // 오늘 날짜인지 확인하는 함수
+  const isToday = (dateString: string) => {
+    const today = new Date();
+    const date = new Date(dateString);
+
+    return (
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    );
+  };
+
   // 문제 목록 가져오기
   const fetchQuestions = async (skillId: number) => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await questionApi.getSolvedQuestions(skillId);
-      console.log("API 응답 데이터:", data);
-      console.log("데이터 타입:", typeof data);
-      console.log("배열 여부:", Array.isArray(data));
+      const solvedQuestions = await questionApi.getSolvedQuestions(skillId);
+      console.log("풀었던 문제 목록:", solvedQuestions);
 
-      // 데이터가 배열인지 확인하고, 아니면 빈 배열로 설정
-      if (Array.isArray(data)) {
-        setQuestions(data);
+      let allQuestions: SolvedQuestion[] = [];
+
+      // 데이터가 배열인지 확인
+      if (Array.isArray(solvedQuestions)) {
+        allQuestions = [...solvedQuestions];
+
+        // 오늘 날짜에 푼 문제가 있는지 확인
+        const hasTodayQuestion = solvedQuestions.some((question) =>
+          isToday(question.createdAt)
+        );
+
+        // 오늘 날짜에 푼 문제가 없으면 오늘의 문제 가져오기
+        if (!hasTodayQuestion) {
+          try {
+            const nextQuestion = await questionApi.getNextQuestion(skillId);
+            console.log("오늘의 문제:", nextQuestion);
+
+            // NextQuestion을 SolvedQuestion 형태로 변환
+            const todayQuestion: SolvedQuestion = {
+              questionId: nextQuestion.questionId || 0,
+              question: nextQuestion.question || "",
+              answer: nextQuestion.answer || "",
+              day: nextQuestion.day || 1,
+              skillId: nextQuestion.skillId || skillId,
+              skillName: nextQuestion.skillName || "",
+              bookmark: false, // null을 false로 변환
+              status: "IN_PROGRESS", // null을 IN_PROGRESS로 변환
+              createdAt: new Date().toISOString(), // 오늘 날짜로 설정
+              updatedAt: new Date().toISOString(), // 오늘 날짜로 설정
+            };
+
+            console.log("변환된 오늘의 문제:", todayQuestion);
+
+            // 오늘의 문제를 맨 앞에 추가
+            allQuestions.unshift(todayQuestion);
+            console.log("오늘의 문제가 추가된 전체 목록:", allQuestions);
+          } catch (nextQuestionError) {
+            console.error("오늘의 문제 가져오기 실패:", nextQuestionError);
+            // 오늘의 문제 가져오기 실패해도 풀었던 문제 목록은 표시
+          }
+        }
       } else {
         console.warn("API 응답이 배열이 아닙니다. 빈 배열로 설정합니다.");
-        setQuestions([]);
+        allQuestions = [];
       }
+
+      setQuestions(allQuestions);
     } catch (err) {
       console.error("문제 목록 가져오기 실패:", err);
       setError("문제 목록을 가져오는데 실패했습니다.");
@@ -164,15 +218,15 @@ export default function DailyQuestionScreen() {
         ) : (
           questions.map((item) => (
             <TouchableOpacity
-              key={item.questionId}
+              key={item.questionId || `question-${Math.random()}`}
               style={styles.questionItem}
               onPress={() => {
                 router.push({
                   pathname: "/chat",
                   params: {
-                    questionId: item.questionId.toString(),
-                    question: item.question,
-                    category: item.skillName,
+                    questionId: item.questionId?.toString() || "",
+                    question: item.question || "",
+                    category: item.skillName || "",
                   },
                 });
               }}
@@ -185,6 +239,11 @@ export default function DailyQuestionScreen() {
                       {item.skillName}
                     </Text>
                   </View>
+                  {isToday(item.createdAt) && item.status === "IN_PROGRESS" && (
+                    <View style={styles.todayTag}>
+                      <Text style={styles.todayTagText}>오늘의 문제</Text>
+                    </View>
+                  )}
                 </View>
                 <Text style={styles.questionText}>{item.question}</Text>
               </View>
@@ -297,6 +356,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#666",
     fontWeight: "500",
+  },
+  todayTag: {
+    backgroundColor: "#9C27B0",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  todayTagText: {
+    fontSize: 10,
+    color: "#FFF",
+    fontWeight: "600",
   },
   questionText: {
     fontSize: 16,

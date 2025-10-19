@@ -93,8 +93,37 @@ export const questionApi = {
   },
 
   // 다음 문제 조회
-  getNextQuestion: (skillId: number): Promise<NextQuestion> => {
-    return apiClient.get<NextQuestion>(`/question/next?skillId=${skillId}`);
+  getNextQuestion: async (skillId: number): Promise<NextQuestion> => {
+    try {
+      const response = await apiClient.get<NextQuestion>(
+        `/question/next?skillId=${skillId}`
+      );
+      console.log("getNextQuestion API 응답:", response);
+      console.log("응답 타입:", typeof response);
+
+      // 응답이 문자열인 경우 JSON 파싱 시도
+      if (typeof response === "string") {
+        try {
+          const parsedResponse = JSON.parse(response);
+          console.log("파싱된 NextQuestion 응답:", parsedResponse);
+          return parsedResponse;
+        } catch (parseError) {
+          console.error("NextQuestion JSON 파싱 실패:", parseError);
+          throw new Error("NextQuestion 응답 파싱 실패");
+        }
+      }
+
+      // 객체인 경우 직접 반환
+      if (typeof response === "object" && response !== null) {
+        return response;
+      }
+
+      console.warn("NextQuestion API 응답이 예상과 다릅니다:", response);
+      throw new Error("NextQuestion 응답 형식 오류");
+    } catch (error) {
+      console.error("getNextQuestion API 호출 실패:", error);
+      throw error;
+    }
   },
 
   // 채팅방 조회

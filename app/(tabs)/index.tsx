@@ -1,16 +1,97 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   ScrollView,
   StyleSheet,
   View,
   TouchableOpacity,
   Text,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { questionApi, SolvedQuestion } from "../../lib/question-api";
+import { getInterestedSkills, Skill } from "../../lib/skill-api";
 
 export default function HomeScreen() {
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [todayStats, setTodayStats] = useState({
+    answered: 0,
+    total: 0,
+  });
+  const [loading, setLoading] = useState(false);
+
+  // 오늘 날짜인지 확인하는 함수
+  const isToday = (dateString: string) => {
+    const today = new Date();
+    const date = new Date(dateString);
+
+    return (
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    );
+  };
+
+  // 오늘의 질문 통계 가져오기
+  const fetchTodayStats = async () => {
+    setLoading(true);
+    try {
+      const interestedSkills = await getInterestedSkills();
+      setSkills(interestedSkills);
+
+      let totalQuestions = 0;
+      let answeredQuestions = 0;
+
+      // 각 스킬별로 오늘의 문제 확인
+      for (const skill of interestedSkills) {
+        try {
+          const solvedQuestions = await questionApi.getSolvedQuestions(
+            skill.id
+          );
+
+          if (Array.isArray(solvedQuestions)) {
+            // 오늘 날짜에 푼 문제가 있는지 확인
+            const hasTodayQuestion = solvedQuestions.some((question) =>
+              isToday(question.createdAt)
+            );
+
+            if (hasTodayQuestion) {
+              totalQuestions++;
+              // 오늘 푼 문제 중 답변 완료된 것 확인
+              const todayAnswered = solvedQuestions.some(
+                (question) =>
+                  isToday(question.createdAt) && question.status === "CORRECT"
+              );
+              if (todayAnswered) {
+                answeredQuestions++;
+              }
+            } else {
+              // 오늘 문제가 없으면 다음 문제가 오늘의 문제가 될 것
+              totalQuestions++;
+            }
+          }
+        } catch (error) {
+          console.error(`스킬 ${skill.name} 문제 조회 실패:`, error);
+        }
+      }
+
+      setTodayStats({
+        answered: answeredQuestions,
+        total: totalQuestions,
+      });
+    } catch (error) {
+      console.error("오늘의 질문 통계 조회 실패:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 통계 가져오기
+  useEffect(() => {
+    fetchTodayStats();
+  }, []);
+
   const frequentQuestions = [
     { icon: "leaf", color: "#4CAF50", title: "Spring 트랜잭션" },
     { icon: "nuclear", color: "#2196F3", title: "React 상태 관리" },
@@ -65,13 +146,37 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Today's Question Card */}
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => router.push("/daily-question")}
+        >
           <View style={styles.todayQuestionContent}>
             <Text style={styles.todayQuestionText}>오늘의 질문 보러가기</Text>
             <View style={styles.streakContainer}>
-              <Ionicons name="flame" size={16} color="#FF6B35" />
-              <Text style={styles.streakText}>연속 5일차</Text>
-              <Ionicons name="chevron-forward" size={16} color="#9E9E9E" />
+              {loading ? (
+                <ActivityIndicator size="small" color="#9C27B0" />
+              ) : (
+                <>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={16}
+                    color={todayStats.answered > 0 ? "#4CAF50" : "#9E9E9E"}
+                  />
+                  <Text
+                    style={[
+                      styles.streakText,
+                      {
+                        color: todayStats.answered > 0 ? "#4CAF50" : "#9E9E9E",
+                      },
+                    ]}
+                  >
+                    {todayStats.total > 0
+                      ? `${todayStats.answered}/${todayStats.total} 완료`
+                      : "오늘의 질문이 없습니다"}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color="#9E9E9E" />
+                </>
+              )}
             </View>
           </View>
         </TouchableOpacity>

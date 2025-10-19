@@ -1,66 +1,108 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   ScrollView,
   StyleSheet,
   View,
   TouchableOpacity,
   Text,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { getAllSkills, Skill } from "../../lib/skill-api";
+
+// 스킬별 아이콘과 색상 매핑
+const getSkillIconAndColor = (skillName: string) => {
+  const skillMap: { [key: string]: { icon: string; color: string } } = {
+    Spring: { icon: "leaf", color: "#4CAF50" },
+    Java: { icon: "cafe", color: "#F44336" },
+    JavaScript: { icon: "logo-javascript", color: "#FFD700" },
+    React: { icon: "logo-react", color: "#61DAFB" },
+    데이터베이스: { icon: "server", color: "#2196F3" },
+    네트워크: { icon: "globe", color: "#FF9800" },
+    인공지능: { icon: "brain", color: "#9C27B0" },
+    OS: { icon: "desktop", color: "#607D8B" },
+    알고리즘: { icon: "analytics", color: "#795548" },
+    Python: { icon: "logo-python", color: "#3776AB" },
+    "Node.js": { icon: "logo-nodejs", color: "#68A063" },
+    "Vue.js": { icon: "logo-vue", color: "#4FC08D" },
+    Angular: { icon: "logo-angular", color: "#DD0031" },
+    TypeScript: { icon: "logo-typescript", color: "#3178C6" },
+    Docker: { icon: "logo-docker", color: "#2496ED" },
+    Kubernetes: { icon: "logo-kubernetes", color: "#326CE5" },
+    AWS: { icon: "logo-amazon", color: "#FF9900" },
+    Git: { icon: "git-branch", color: "#F05032" },
+  };
+
+  return skillMap[skillName] || { icon: "code", color: "#666666" };
+};
 
 export default function ProblemBankScreen() {
-  const problemCategories = [
-    {
-      title: "Spring",
-      icon: "leaf",
-      color: "#4CAF50",
-      description: "Spring Framework 관련 문제",
-    },
-    {
-      title: "데이터베이스",
-      icon: "server",
-      color: "#2196F3",
-      description: "데이터베이스 설계 및 쿼리",
-    },
-    {
-      title: "네트워크",
-      icon: "globe",
-      color: "#FF9800",
-      description: "네트워크 프로토콜 및 보안",
-    },
-    {
-      title: "React",
-      icon: "logo-react",
-      color: "#61DAFB",
-      description: "React 컴포넌트 및 상태 관리",
-    },
-    {
-      title: "인공지능",
-      icon: "brain",
-      color: "#9C27B0",
-      description: "머신러닝 및 딥러닝",
-    },
-    {
-      title: "OS",
-      icon: "desktop",
-      color: "#607D8B",
-      description: "운영체제 및 시스템 프로그래밍",
-    },
-    {
-      title: "JAVA",
-      icon: "cafe",
-      color: "#F44336",
-      description: "Java 프로그래밍 언어",
-    },
-    {
-      title: "알고리즘",
-      icon: "analytics",
-      color: "#795548",
-      description: "자료구조 및 알고리즘",
-    },
-  ];
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadSkills();
+  }, []);
+
+  const loadSkills = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const skillsData = await getAllSkills();
+      setSkills(skillsData);
+    } catch (err) {
+      console.error("스킬 목록 로드 실패:", err);
+      setError("스킬 목록을 불러오는데 실패했습니다.");
+      Alert.alert("오류", "스킬 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSkillPress = (skill: Skill) => {
+    router.push({
+      pathname: "/problem-list",
+      params: {
+        skillId: skill.id.toString(),
+        skillName: skill.name,
+      },
+    });
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>문제은행</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#9C27B0" />
+          <Text style={styles.loadingText}>스킬 목록을 불러오는 중...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>문제은행</Text>
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#F44336" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadSkills}>
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -69,34 +111,29 @@ export default function ProblemBankScreen() {
         <Text style={styles.headerTitle}>문제은행</Text>
       </View>
 
-      {/* Problem Categories Grid */}
+      {/* Skills Grid */}
       <ScrollView
         style={styles.gridContainer}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.grid}>
-          {problemCategories.map((category, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.categoryCard}
-              onPress={() => {
-                router.push({
-                  pathname: "/problem-list",
-                  params: { category: category.title },
-                });
-              }}
-            >
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: category.color },
-                ]}
+          {skills.map((skill) => {
+            const { icon, color } = getSkillIconAndColor(skill.name);
+            return (
+              <TouchableOpacity
+                key={skill.id}
+                style={styles.categoryCard}
+                onPress={() => handleSkillPress(skill)}
               >
-                <Ionicons name={category.icon as any} size={32} color="#FFF" />
-              </View>
-              <Text style={styles.categoryTitle}>{category.title}</Text>
-            </TouchableOpacity>
-          ))}
+                <View
+                  style={[styles.iconContainer, { backgroundColor: color }]}
+                >
+                  <Ionicons name={icon as any} size={32} color="#FFF" />
+                </View>
+                <Text style={styles.categoryTitle}>{skill.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -157,5 +194,41 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#000",
     textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: "#9C27B0",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

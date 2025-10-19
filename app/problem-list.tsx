@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,66 +6,115 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-
-interface Problem {
-  id: number;
-  question: string;
-  completed: boolean;
-}
+import { questionBankApi, QuestionBankItem } from "../lib/question-bank-api";
 
 export default function ProblemListScreen() {
-  const { category } = useLocalSearchParams();
-  const [selectedTab, setSelectedTab] = useState<"solved" | "unsolved">(
-    "solved"
-  );
+  const { skillId, skillName } = useLocalSearchParams();
+  const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // 더미 데이터 - 실제로는 API에서 가져올 데이터
-  const problems: Problem[] = [
-    {
-      id: 1,
-      question: "Spring Framework와 Spring Boot의 차이점은 무엇인가요?",
-      completed: true,
-    },
-    {
-      id: 2,
-      question:
-        "IoC(Inversion of Control)와 DI(Dependency Injection)의 개념과 장점을 설명해주세요.",
-      completed: false,
-    },
-    {
-      id: 3,
-      question: "AOP(관점 지향 프로그래밍)의 주요 사용 사례는 무엇인가요?",
-      completed: true,
-    },
-    {
-      id: 4,
-      question:
-        "@Component, @Service, @Repository, @Controller의 차이점을 설명해주세요.",
-      completed: true,
-    },
-    {
-      id: 5,
-      question: "Lazy Loading과 Eager Loading의 차이를 설명해주세요.",
-      completed: true,
-    },
-  ];
+  useEffect(() => {
+    if (skillId) {
+      loadQuestions();
+    }
+  }, [skillId]);
 
-  const filteredProblems = problems.filter((problem) =>
-    selectedTab === "solved" ? problem.completed : !problem.completed
-  );
+  const loadQuestions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const skillIdNum = parseInt(skillId as string, 10);
+      const questionsData = await questionBankApi.getQuestionList(skillIdNum);
+      setQuestions(questionsData);
+    } catch (err) {
+      console.error("문제 목록 로드 실패:", err);
+      setError("문제 목록을 불러오는데 실패했습니다.");
+      Alert.alert("오류", "문제 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleProblemPress = (problem: Problem) => {
+  const handleProblemPress = (question: QuestionBankItem) => {
     router.push({
       pathname: "/chat",
       params: {
-        question: problem.question,
-        category: typeof category === "string" ? category : "Spring",
+        questionId: question.questionId.toString(),
+        question: question.question,
+        skillName: typeof skillName === "string" ? skillName : "Spring",
       },
     });
   };
+
+  const getStatusIcon = (status: string | null) => {
+    switch (status) {
+      case "CORRECT":
+        return <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />;
+      case "WRONG":
+        return <Ionicons name="close-circle" size={20} color="#F44336" />;
+      case "IN_PROGRESS":
+        return <Ionicons name="time" size={20} color="#FF9800" />;
+      default:
+        return <Ionicons name="ellipse-outline" size={20} color="#9E9E9E" />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>
+              {typeof skillName === "string" ? skillName : "Spring"} 문제은행
+            </Text>
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#9C27B0" />
+          <Text style={styles.loadingText}>문제 목록을 불러오는 중...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>
+              {typeof skillName === "string" ? skillName : "Spring"} 문제은행
+            </Text>
+          </View>
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#F44336" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadQuestions}>
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -79,39 +128,9 @@ export default function ProblemListScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>
-            {typeof category === "string" ? category : "Spring"} 문제은행
+            {typeof skillName === "string" ? skillName : "Spring"} 문제은행
           </Text>
         </View>
-      </View>
-
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, selectedTab === "solved" && styles.selectedTab]}
-          onPress={() => setSelectedTab("solved")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              selectedTab === "solved" && styles.selectedTabText,
-            ]}
-          >
-            푼 문제
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, selectedTab === "unsolved" && styles.selectedTab]}
-          onPress={() => setSelectedTab("unsolved")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              selectedTab === "unsolved" && styles.selectedTabText,
-            ]}
-          >
-            안 푼 문제
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Problem List */}
@@ -119,25 +138,28 @@ export default function ProblemListScreen() {
         style={styles.problemsContainer}
         showsVerticalScrollIndicator={false}
       >
-        {filteredProblems.map((problem) => (
-          <TouchableOpacity
-            key={problem.id}
-            style={styles.problemItem}
-            onPress={() => handleProblemPress(problem)}
-          >
-            <View style={styles.problemContent}>
-              <Text style={styles.problemNumber}>{problem.id}.</Text>
-              <Text style={styles.problemText}>{problem.question}</Text>
-            </View>
-            <View style={styles.statusIcon}>
-              {problem.completed ? (
-                <Ionicons name="checkmark" size={20} color="#000" />
-              ) : (
-                <Ionicons name="close" size={20} color="#000" />
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
+        {questions.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="document-text-outline" size={48} color="#9E9E9E" />
+            <Text style={styles.emptyText}>문제가 없습니다.</Text>
+          </View>
+        ) : (
+          questions.map((question) => (
+            <TouchableOpacity
+              key={question.questionId}
+              style={styles.problemItem}
+              onPress={() => handleProblemPress(question)}
+            >
+              <View style={styles.problemContent}>
+                <Text style={styles.problemNumber}>{question.day}.</Text>
+                <Text style={styles.problemText}>{question.question}</Text>
+              </View>
+              <View style={styles.statusIcon}>
+                {getStatusIcon(question.status)}
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -170,30 +192,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#000",
-  },
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: "#FFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderRadius: 8,
-    marginHorizontal: 4,
-  },
-  selectedTab: {
-    backgroundColor: "#9C27B0",
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#666",
-  },
-  selectedTabText: {
-    color: "#FFF",
   },
   problemsContainer: {
     flex: 1,
@@ -236,5 +234,54 @@ const styles = StyleSheet.create({
   },
   statusIcon: {
     marginLeft: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: "#9C27B0",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 60,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#9E9E9E",
+    textAlign: "center",
   },
 });
