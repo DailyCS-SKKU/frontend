@@ -76,9 +76,7 @@ export default function LoginScreen() {
 
   const handleApiLogin = async (code: string) => {
     try {
-      console.log("🚀 API 호출 시작 - code:", code);
       const response = await loginWithGoogle(code);
-      console.log("✅ API 응답 성공:", response);
 
       // 로그인 성공 시 홈으로 리다이렉트
       login();

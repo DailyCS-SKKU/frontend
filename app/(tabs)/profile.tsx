@@ -12,17 +12,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth-context";
 
 export default function ProfileScreen() {
-  console.log("ProfileScreen 컴포넌트 렌더링");
   const { logout } = useAuth();
-  console.log("useAuth에서 받은 logout 함수:", typeof logout);
   const interestedJobs = ["백엔드", "인프라", "서버"];
   const interestedSkills = ["Spring", "알고리즘"];
 
   const handleLogout = () => {
-    console.log("handleLogout 함수 호출됨");
-
     // 임시로 바로 로그아웃 실행
-    console.log("바로 로그아웃 실행");
     logout();
 
     // Alert는 나중에 다시 활성화
