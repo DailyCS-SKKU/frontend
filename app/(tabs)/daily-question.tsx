@@ -17,6 +17,7 @@ import {
   NextQuestion,
 } from "../../lib/question-api";
 import { getInterestedSkills, Skill } from "../../lib/skill-api";
+import { useNavigationWithLoading } from "../../hooks/use-navigation-with-loading";
 
 export default function DailyQuestionScreen() {
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -24,6 +25,7 @@ export default function DailyQuestionScreen() {
   const [questions, setQuestions] = useState<SolvedQuestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { navigateWithLoading } = useNavigationWithLoading();
 
   // 관심 스킬 목록 가져오기
   const fetchInterestedSkills = async () => {
@@ -68,12 +70,12 @@ export default function DailyQuestionScreen() {
       if (Array.isArray(solvedQuestions)) {
         allQuestions = [...solvedQuestions];
 
-        // 오늘 날짜에 푼 문제가 있는지 확인
+        // 오늘 날짜의 채팅방이 있는지 확인 (상태와 관계없이 오늘 날짜인 문제)
         const hasTodayQuestion = solvedQuestions.some((question) =>
           isToday(question.createdAt)
         );
 
-        // 오늘 날짜에 푼 문제가 없으면 오늘의 문제 가져오기
+        // 오늘 날짜의 채팅방이 없으면 오늘의 문제 가져오기
         if (!hasTodayQuestion) {
           try {
             const nextQuestion = await questionApi.getNextQuestion(skillId);
@@ -221,13 +223,14 @@ export default function DailyQuestionScreen() {
               key={item.questionId || `question-${Math.random()}`}
               style={styles.questionItem}
               onPress={() => {
-                router.push({
-                  pathname: "/chat",
+                navigateWithLoading("/chat", {
                   params: {
                     questionId: item.questionId?.toString() || "",
                     question: item.question || "",
                     category: item.skillName || "",
                   },
+                  loadingMessage: "채팅방을 준비하는 중...",
+                  refreshData: () => fetchQuestions(selectedSkill?.id || 0),
                 });
               }}
             >

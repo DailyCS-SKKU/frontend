@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { getAllSkills, Skill } from "../../lib/skill-api";
+import { useNavigationWithLoading } from "../../hooks/use-navigation-with-loading";
 
 // 스킬별 아이콘과 색상 매핑
 const getSkillIconAndColor = (skillName: string) => {
@@ -43,6 +44,7 @@ export default function ProblemBankScreen() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { navigateWithLoading } = useNavigationWithLoading();
 
   useEffect(() => {
     loadSkills();
@@ -64,12 +66,13 @@ export default function ProblemBankScreen() {
   };
 
   const handleSkillPress = (skill: Skill) => {
-    router.push({
-      pathname: "/problem-list",
+    navigateWithLoading("/problem-list", {
       params: {
         skillId: skill.id.toString(),
         skillName: skill.name,
       },
+      loadingMessage: "문제 목록을 불러오는 중...",
+      refreshData: loadSkills,
     });
   };
 

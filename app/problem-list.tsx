@@ -12,12 +12,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { questionBankApi, QuestionBankItem } from "../lib/question-bank-api";
+import { useNavigationWithLoading } from "../hooks/use-navigation-with-loading";
 
 export default function ProblemListScreen() {
   const { skillId, skillName } = useLocalSearchParams();
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { navigateWithLoading, backWithLoading } = useNavigationWithLoading();
 
   useEffect(() => {
     if (skillId) {
@@ -42,27 +44,15 @@ export default function ProblemListScreen() {
   };
 
   const handleProblemPress = (question: QuestionBankItem) => {
-    router.push({
-      pathname: "/chat",
+    navigateWithLoading("/chat", {
       params: {
         questionId: question.questionId.toString(),
         question: question.question,
         skillName: typeof skillName === "string" ? skillName : "Spring",
       },
+      loadingMessage: "채팅방을 준비하는 중...",
+      refreshData: loadQuestions,
     });
-  };
-
-  const getStatusIcon = (status: string | null) => {
-    switch (status) {
-      case "CORRECT":
-        return <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />;
-      case "WRONG":
-        return <Ionicons name="close-circle" size={20} color="#F44336" />;
-      case "IN_PROGRESS":
-        return <Ionicons name="time" size={20} color="#FF9800" />;
-      default:
-        return <Ionicons name="ellipse-outline" size={20} color="#9E9E9E" />;
-    }
   };
 
   if (loading) {
@@ -70,7 +60,12 @@ export default function ProblemListScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() =>
+              backWithLoading({
+                loadingMessage: "이전 페이지로 이동 중...",
+                refreshData: loadQuestions,
+              })
+            }
             style={styles.backButton}
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
@@ -94,7 +89,12 @@ export default function ProblemListScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() =>
+              backWithLoading({
+                loadingMessage: "이전 페이지로 이동 중...",
+                refreshData: loadQuestions,
+              })
+            }
             style={styles.backButton}
           >
             <Ionicons name="arrow-back" size={24} color="#000" />
@@ -121,7 +121,12 @@ export default function ProblemListScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() =>
+            backWithLoading({
+              loadingMessage: "이전 페이지로 이동 중...",
+              refreshData: loadQuestions,
+            })
+          }
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
@@ -153,9 +158,6 @@ export default function ProblemListScreen() {
               <View style={styles.problemContent}>
                 <Text style={styles.problemNumber}>{question.day}.</Text>
                 <Text style={styles.problemText}>{question.question}</Text>
-              </View>
-              <View style={styles.statusIcon}>
-                {getStatusIcon(question.status)}
               </View>
             </TouchableOpacity>
           ))
@@ -231,9 +233,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000",
     lineHeight: 22,
-  },
-  statusIcon: {
-    marginLeft: 12,
   },
   loadingContainer: {
     flex: 1,

@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { questionApi, SolvedQuestion } from "../../lib/question-api";
 import { getInterestedSkills, Skill } from "../../lib/skill-api";
+import { useNavigationWithLoading } from "../../hooks/use-navigation-with-loading";
 
 export default function HomeScreen() {
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -20,6 +21,7 @@ export default function HomeScreen() {
     total: 0,
   });
   const [loading, setLoading] = useState(false);
+  const { navigateWithLoading } = useNavigationWithLoading();
 
   // 오늘 날짜인지 확인하는 함수
   const isToday = (dateString: string) => {
@@ -148,7 +150,12 @@ export default function HomeScreen() {
         {/* Today's Question Card */}
         <TouchableOpacity
           style={styles.card}
-          onPress={() => router.push("/daily-question")}
+          onPress={() =>
+            navigateWithLoading("/daily-question", {
+              loadingMessage: "오늘의 질문을 불러오는 중...",
+              refreshData: fetchTodayStats,
+            })
+          }
         >
           <View style={styles.todayQuestionContent}>
             <Text style={styles.todayQuestionText}>오늘의 질문 보러가기</Text>
@@ -201,12 +208,13 @@ export default function HomeScreen() {
               key={index}
               style={styles.listItem}
               onPress={() => {
-                router.push({
-                  pathname: "/chat",
+                navigateWithLoading("/chat", {
                   params: {
                     question: item.fullQuestion,
                     category: item.category,
                   },
+                  loadingMessage: "채팅방을 준비하는 중...",
+                  refreshData: fetchTodayStats,
                 });
               }}
             >

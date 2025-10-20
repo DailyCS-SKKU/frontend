@@ -14,6 +14,18 @@ export interface QuestionBankItem {
   updatedAt: string | null;
 }
 
+// 문제은행 답변 보내기 API 타입 정의
+export interface QuestionBankSendAnswerRequest {
+  questionId: number;
+  userAnswer: string;
+  aiSummary: string;
+}
+
+export interface QuestionBankSendAnswerResponse {
+  feedback: string;
+  summary: string;
+}
+
 // 문제은행 API 함수들
 export const questionBankApi = {
   // 문제 목록 조회
@@ -140,6 +152,27 @@ export const questionBankApi = {
       return true;
     } catch (error) {
       console.error("북마크 토글 실패:", error);
+      throw error;
+    }
+  },
+
+  // 문제은행 답변 보내기
+  sendAnswer: async (
+    request: QuestionBankSendAnswerRequest
+  ): Promise<QuestionBankSendAnswerResponse> => {
+    try {
+      const response = await apiClient.post<QuestionBankSendAnswerResponse>(
+        `/ai/ask/no-history`,
+        request
+      );
+      console.log("문제은행 답변 전송 API 응답:", response);
+      console.log("응답 타입:", typeof response);
+      console.log("응답 내용 상세:", JSON.stringify(response, null, 2));
+
+      // 응답을 그대로 반환 (파싱 로직 제거)
+      return response;
+    } catch (error) {
+      console.error("문제은행 답변 전송 API 호출 실패:", error);
       throw error;
     }
   },
