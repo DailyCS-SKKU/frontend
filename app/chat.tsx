@@ -393,18 +393,7 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.messagesContent}
         >
-          {/* 질문 메시지 (상대방 메시지로 표시) */}
-          {chatInfo?.question?.question && (
-            <View style={[styles.messageContainer, styles.aiMessageContainer]}>
-              <View style={[styles.messageBubble, styles.aiMessageBubble]}>
-                <Text style={[styles.messageText, styles.aiMessageText]}>
-                  {chatInfo.question.question}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* 실제 채팅 메시지들 */}
+          {/* 채팅 메시지들만 렌더링 */}
           {chatInfo?.messages?.map((message) => {
             // 로딩 메시지인지 확인
             const isLoadingMessage =

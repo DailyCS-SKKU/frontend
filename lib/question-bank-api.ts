@@ -156,6 +156,44 @@ export const questionBankApi = {
     }
   },
 
+  // 랜덤 문제 n개 가져오기
+  getRandomQuestions: async (count: number): Promise<QuestionBankItem[]> => {
+    try {
+      const response = await apiClient.get<QuestionBankItem[]>(
+        `/question/random?count=${count}`
+      );
+
+      console.log("getRandomQuestions API 응답:", response);
+      console.log("응답 타입:", typeof response);
+      console.log("배열 여부:", Array.isArray(response));
+
+      // 응답이 문자열인 경우 JSON 파싱 시도
+      if (typeof response === "string") {
+        try {
+          const parsedResponse = JSON.parse(response);
+          console.log("파싱된 응답:", parsedResponse);
+          if (Array.isArray(parsedResponse)) {
+            return parsedResponse;
+          }
+        } catch (parseError) {
+          console.error("JSON 파싱 실패:", parseError);
+          throw new Error("랜덤 문제 응답 파싱 실패");
+        }
+      }
+
+      // 배열인 경우 직접 반환
+      if (Array.isArray(response)) {
+        return response;
+      }
+
+      console.warn("API 응답이 배열이 아닙니다:", response);
+      return [];
+    } catch (error) {
+      console.error("getRandomQuestions API 호출 실패:", error);
+      throw error;
+    }
+  },
+
   // 문제은행 답변 보내기
   sendAnswer: async (
     request: QuestionBankSendAnswerRequest
