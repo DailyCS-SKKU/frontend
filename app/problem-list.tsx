@@ -44,7 +44,7 @@ export default function ProblemListScreen() {
   };
 
   const handleProblemPress = (question: QuestionBankItem) => {
-    navigateWithLoading("/chat", {
+    navigateWithLoading("/question-bank-chat", {
       params: {
         questionId: question.questionId.toString(),
         question: question.question,
