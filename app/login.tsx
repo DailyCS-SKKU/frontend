@@ -94,6 +94,14 @@ export default function LoginScreen() {
       <StatusBar barStyle="dark-content" />
 
       <View style={styles.content}>
+        {/* DailyCS 타이틀 */}
+        <View style={styles.titleSection}>
+          <Text style={styles.title}>DailyCS</Text>
+          <Text style={styles.subtitle}>
+            개발자의 면접 준비를 쉽고 똑똑하게
+          </Text>
+        </View>
+
         {/* 로그인 버튼 영역 */}
         <View style={styles.loginSection}>
           <TouchableOpacity
@@ -127,24 +135,29 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F5F5F5",
   },
   content: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: "center",
   },
-  header: {
+  titleSection: {
     alignItems: "center",
     marginBottom: 80,
   },
   title: {
-    fontSize: 32,
+    fontSize: 48,
     fontWeight: "bold",
-    marginBottom: 8,
+    color: "#000",
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
     fontWeight: "400",
+    color: "#666",
+    textAlign: "center",
+    marginTop: 8,
   },
   loginSection: {
     marginBottom: 60,
